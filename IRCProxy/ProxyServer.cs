@@ -33,31 +33,29 @@ namespace IRCProxy
         /// <returns></returns>
         protected async Task<bool> ConvertStream(NetworkStream input, NetworkStream output, int input_codepage, int output_codepage)
         {
+            byte[] buf = new byte[8196];
+
+            int read_bytes = await input.ReadAsync(buf, 0, 8196);
+
+            if (read_bytes == 0)
+            {
+                return false;
+            }
+
             try
             {
-                byte[] buf = new byte[8196];
-
-                int read_bytes = await input.ReadAsync(buf, 0, 8196);
-
-                if ( read_bytes == 0 )
-                {
-                    return false;
-                }
-
                 string converted_string = Encoding.GetEncoding(input_codepage).GetString(buf, 0, read_bytes);
                 byte[] converted_buf = Encoding.GetEncoding(output_codepage).GetBytes(converted_string);
                 await output.WriteAsync(converted_buf, 0, converted_buf.Count());
-
-                return true;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 // 인코딩 변환 실패는 에러만 출력하고 그냥 무시한다.
                 Console.WriteLine("ConvertStream Fail: " + e.Message);
 
                 return true;
             }
-
+            return true;
         }
         protected async Task ClientHandler(TcpClient client, params object[] args)
         {
@@ -75,7 +73,7 @@ namespace IRCProxy
                         {
                             if (server.Client.Poll(30, SelectMode.SelectRead))
                             {
-                                if ( await ConvertStream(server_stream, client_stream, 949, 65001) == false )
+                                if (await ConvertStream(server_stream, client_stream, 949, 65001) == false)
                                 {
                                     throw new Exception("disconnected");
                                 }
@@ -83,7 +81,7 @@ namespace IRCProxy
 
                             if (client.Client.Poll(30, SelectMode.SelectRead))
                             {
-                                if ( await ConvertStream(client_stream, server_stream, 65001, 949) == false )
+                                if (await ConvertStream(client_stream, server_stream, 65001, 949) == false)
                                 {
                                     throw new Exception("disconnected");
                                 }
@@ -94,12 +92,23 @@ namespace IRCProxy
             }
             catch (Exception e)
             {
-                Console.WriteLine("clean up");
+                System.Threading.Thread.CurrentThread.CurrentUICulture = System.Globalization.CultureInfo.GetCultureInfo("en-US");
+                Console.WriteLine("============== clean up =============");
+                Console.WriteLine(e.Message);
+                Console.WriteLine(e.StackTrace);
+                if ( e is AggregateException )
+                {
+                    AggregateException ae = e as AggregateException;
+                    Console.WriteLine(ae.Message);
+                    Console.WriteLine(ae.StackTrace);
+                }
+
                 client.Close();
                 if (server != null)
                 {
                     server.Close();
                 }
+                Console.WriteLine("===================================");
             }
         }
         protected async Task ListenJob()

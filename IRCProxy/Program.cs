@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+
 
 namespace IRCProxy
 {
@@ -10,9 +12,11 @@ namespace IRCProxy
     {
         static void Main(string[] args)
         {
+            Thread.CurrentThread.CurrentUICulture = System.Globalization.CultureInfo.GetCultureInfo("en-US");
+
             int DefaultPort = 58888;
-            string DefaultTargetServer = "ddos.hanirc.org";
-            int DefaultTargetPort = 8080;
+            string DefaultTargetServer = "irc.hanirc.org";
+            int DefaultTargetPort = 6668;
 
             if ( args.Count() >= 1 )
             {
